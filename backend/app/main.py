@@ -22,7 +22,7 @@ logger = logging.getLogger("janjia.main")
 # Inicialização do Rate Limiter baseado em Redis
 limiter = Limiter(
     key_func=get_remote_address,
-    storage_uri=f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}/{settings.REDIS_DB}"
+    storage_uri=settings.redis_url
 )
 
 def create_initial_admin():

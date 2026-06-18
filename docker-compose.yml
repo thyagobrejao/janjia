@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -9,8 +7,6 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-janjia_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-janjia_password}
       POSTGRES_DB: ${POSTGRES_DB:-janjia_db}
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -25,14 +21,13 @@ services:
     image: redis:7-alpine
     container_name: janjia-redis
     restart: always
-    ports:
-      - "6379:6379"
+    command: redis-server --requirepass ${REDIS_PASSWORD:-janjia_redis_secret}
     volumes:
       - redis_data:/data
     networks:
       - janjia-network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-janjia_redis_secret}", "ping"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -41,8 +36,6 @@ services:
     image: ollama/ollama:latest
     container_name: janjia-ollama
     restart: always
-    ports:
-      - "11434:11434"
     volumes:
       - ollama_data:/root/.ollama
     networks:
@@ -62,10 +55,9 @@ services:
       - POSTGRES_SERVER=postgres
       - REDIS_HOST=redis
       - OLLAMA_BASE_URL=http://ollama:11434
+      - ENV=production
     env_file:
       - .env
-    ports:
-      - "8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -86,10 +78,8 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
-    ports:
-      - "5173:5173"
     environment:
-      - VITE_API_URL=http://localhost:8080/api
+      - VITE_API_URL=/api
     depends_on:
       - backend
     networks:
@@ -102,7 +92,7 @@ services:
     container_name: janjia-nginx
     restart: always
     ports:
-      - "8080:80"
+      - "127.0.0.1:80:80"
     depends_on:
       - frontend
       - backend
@@ -113,6 +103,7 @@ networks:
   janjia-network:
     name: janjia-network
     driver: bridge
+    internal: false
 
 volumes:
   postgres_data:
