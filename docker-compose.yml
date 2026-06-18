@@ -1,0 +1,123 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: janjia-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-janjia_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-janjia_password}
+      POSTGRES_DB: ${POSTGRES_DB:-janjia_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - janjia-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: janjia-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - janjia-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: janjia-ollama
+    restart: always
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - janjia-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: janjia-backend
+    restart: always
+    volumes:
+      - ./backend:/app
+      - ./prompts:/app/prompts:ro
+      - ./scripts:/app/scripts
+    environment:
+      - POSTGRES_SERVER=postgres
+      - REDIS_HOST=redis
+      - OLLAMA_BASE_URL=http://ollama:11434
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    networks:
+      - janjia-network
+    entrypoint: ["/bin/sh", "/app/scripts/entrypoint.sh"]
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: janjia-frontend
+    restart: always
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8080/api
+    depends_on:
+      - backend
+    networks:
+      - janjia-network
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: janjia-nginx
+    restart: always
+    ports:
+      - "8080:80"
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - janjia-network
+
+networks:
+  janjia-network:
+    name: janjia-network
+    driver: bridge
+
+volumes:
+  postgres_data:
+    name: janjia_postgres_data
+  redis_data:
+    name: janjia_redis_data
+  ollama_data:
+    name: janjia_ollama_data
