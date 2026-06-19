@@ -1,6 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
-import pinia from '../stores'
 
 const routes = [
   {
@@ -37,7 +35,8 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to, from, next) => {
-  const authStore = useAuthStore(pinia)
+  const { useAuthStore } = await import('../stores/auth')
+  const authStore = useAuthStore()
   
   // Restaura tokens do localStorage caso a store esteja vazia (ex: F5)
   if (!authStore.user && authStore.token) {
