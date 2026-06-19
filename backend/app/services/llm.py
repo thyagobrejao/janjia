@@ -102,7 +102,7 @@ class LLMService:
 
             except (httpx.ConnectError, httpx.TimeoutException, httpx.HTTPStatusError) as e:
                 retries += 1
-                logger.warning(f"Tentativa {retries} falhou ao conectar ao Ollama ({e}).")
+                logger.warning(f"Tentativa {retries} falhou ao conectar ao Ollama ({type(e).__name__}: {e}).")
                 if retries > self.max_retries:
                     logger.error("Número máximo de retentativas atingido para o Ollama.")
                     raise e

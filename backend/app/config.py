@@ -40,8 +40,8 @@ class Settings(BaseSettings):
 
     # Ollama
     OLLAMA_BASE_URL: str = "http://ollama:11434"
-    OLLAMA_MODEL: str = "qwen3:8b"
-    OLLAMA_TIMEOUT: int = 60
+    OLLAMA_MODEL: str = "llama3.2:1b"
+    OLLAMA_TIMEOUT: int = 300
     OLLAMA_MAX_RETRIES: int = 3
 
     # Rate Limiting
