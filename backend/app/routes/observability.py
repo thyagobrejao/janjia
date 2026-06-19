@@ -48,7 +48,13 @@ async def health_check(db: Session = Depends(get_db)):
 
     # 2. Testa Redis
     try:
-        r = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, db=settings.REDIS_DB, socket_timeout=2)
+        r = redis.Redis(
+            host=settings.REDIS_HOST,
+            port=settings.REDIS_PORT,
+            db=settings.REDIS_DB,
+            password=settings.REDIS_PASSWORD,
+            socket_timeout=2
+        )
         r.ping()
         health_status["services"]["redis"] = "healthy"
         service_health_gauge.labels(service="redis").set(1)
